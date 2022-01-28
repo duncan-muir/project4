@@ -19,7 +19,16 @@ def main():
 
     # TODO print all of the alignment score between each species BRD2 and human BRD2
     # using gap opening penalty of -10 and a gap extension penalty of -1 and BLOSUM62 matrix
-    pass
+    nw = NeedlemanWunsch("./substitution_matrices/BLOSUM62.mat", -10, -1)
+
+    gg_score, gg_seq_a, gg_seq_b = nw.align(hs_seq, gg_seq)
+    print(f"Chicken (Gallus): {gg_score}")
+    mm_score, mm_seq_a, mm_seq_b = nw.align(hs_seq, mm_seq)
+    print(f"Mouse (Mus): {mm_score}")
+    br_score, br_seq_a, br_seq_b = nw.align(hs_seq, br_seq)
+    print(f"Stork (Balaeniceps): {br_score}")
+    tt_score, tt_seq_a, tt_seq_b = nw.align(hs_seq, tt_seq)
+    print(f"Dolphin (Tursiops): {tt_score}")
 
 if __name__ == "__main__":
     main()

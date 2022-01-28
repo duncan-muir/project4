@@ -2,6 +2,11 @@
 import numpy as np
 from typing import Tuple
 
+GAP_A_IDX = 0
+ALIGN_IDX = 1
+GAP_B_IDX = 2
+
+
 # Defining class for Needleman-Wunsch Algorithm for Global pairwise alignment
 class NeedlemanWunsch:
     """ Class for NeedlemanWunsch Alignment
@@ -114,11 +119,14 @@ class NeedlemanWunsch:
         self._gapA_matrix = np.ones((len(seqA) + 1, len(seqB) + 1)) * -np.inf
         self._gapB_matrix = np.ones((len(seqA) + 1, len(seqB) + 1)) * -np.inf
 
+        self._align_3d = np.ones((3, len(seqA) + 1, len(seqB) + 1)) * -np.inf
         # create matrices for pointers used in backtrace procedure
         self._back = np.ones((len(seqA) + 1, len(seqB) + 1)) * -np.inf
         self._back_A = np.ones((len(seqA) + 1, len(seqB) + 1)) * -np.inf
         self._back_B = np.ones((len(seqA) + 1, len(seqB) + 1)) * -np.inf
 
+        # TODO Nan???
+        self._back_3d = np.zeros((3, len(seqA) + 1, len(seqB) + 1, 3), dtype=int)
         # Resetting alignment in case method is called more than once
         self.seqA_align = ""
         self.seqB_align = ""
@@ -130,8 +138,93 @@ class NeedlemanWunsch:
         self._seqA = seqA
         self._seqB = seqB
 
-        # TODO Implement the global sequence alignment here
-        pass
+        self._align_matrix[0, 0] = 0
+
+        self._gapA_matrix[0] = (self.gap_open + self.gap_extend
+                                   * np.array(range(len(self._seqB) + 1)))
+
+        self._gapB_matrix[:, 0] = (self.gap_open + self.gap_extend
+                                * np.array(range(len(self._seqA) + 1)))
+
+        self._align_3d[ALIGN_IDX, 0, 0] = 0
+        self._align_3d[GAP_A_IDX, 0] = (self.gap_open + self.gap_extend
+                                   * np.array(range(len(self._seqB) + 1)))
+        self._align_3d[GAP_B_IDX, :, 0] = (self.gap_open + self.gap_extend
+                                * np.array(range(len(self._seqA) + 1)))
+
+        # SET SOME INITIAL FRICKIN POINTERS!!!!!!
+        self._back_3d[GAP_A_IDX][:,0][:,1] = list(range(len(self._seqA) + 1))
+        self._back_3d[GAP_B_IDX][0][:,2] = list(range(len(self._seqB) + 1))
+        # print(self._back_3d[GAP_B_IDX][0])
+
+        # Going to have following key:
+        # 0 : gapA,
+        # 1 : aligned,
+        # 2 : gapB
+        for i in range(1, len(self._seqA) + 1):
+            for j in range(1, len(self._seqB) + 1):
+
+                # trying to implement highroad????????
+                curr_idx = (i, j)
+
+                # start with match matrix
+                from_i = i - 1
+                from_j = j - 1
+                score = self.sub_dict[(self._seqA[i - 1], self._seqB[j - 1])]
+                aligned = self._align_matrix[from_i, from_j] + score
+                gapped_a = self._gapA_matrix[from_i, from_j] + score
+                gapped_b = self._gapB_matrix[from_i, from_j] + score
+
+                if (gapped_a >= aligned) and (gapped_a >= gapped_b):
+                    self._align_matrix[curr_idx] = gapped_a
+                    self._back_3d[ALIGN_IDX, i, j] = (GAP_A_IDX, from_i, from_j)
+
+                elif aligned >= gapped_b:
+                    self._align_matrix[curr_idx] = aligned
+                    self._back_3d[ALIGN_IDX, i, j] = (ALIGN_IDX, from_i, from_j)
+
+                else:
+                    self._align_matrix[curr_idx] = gapped_b
+                    self._back_3d[ALIGN_IDX, i, j] = (GAP_B_IDX, from_i, from_j)
+
+                # next do gapA matrix
+                from_i = i
+                from_j = j - 1
+                aligned = self._align_matrix[from_i, from_j] + self.gap_open + self.gap_extend
+                gapped_a = self._gapA_matrix[from_i, from_j] + self.gap_extend
+                gapped_b = self._gapB_matrix[from_i, from_j] + self.gap_open + self.gap_extend
+
+                if (gapped_a >= aligned) and (gapped_a >= gapped_b):
+                    self._gapA_matrix[curr_idx] = gapped_a
+                    self._back_3d[GAP_A_IDX, i, j] = (GAP_A_IDX, from_i, from_j)
+
+                elif aligned >= gapped_b:
+                    self._gapA_matrix[curr_idx] = aligned
+                    self._back_3d[GAP_A_IDX, i, j] = (ALIGN_IDX, from_i, from_j)
+
+                else:
+                    self._gapA_matrix[curr_idx] = gapped_b
+                    self._back_3d[GAP_A_IDX, i, j] = (GAP_B_IDX, from_i, from_j)
+
+                # next do gapB matrix
+                from_i = i - 1
+                from_j = j
+
+                aligned = self._align_matrix[from_i, from_j] + self.gap_open + self.gap_extend
+                gapped_a = self._gapA_matrix[from_i, from_j] + self.gap_open + self.gap_extend
+                gapped_b = self._gapB_matrix[from_i, from_j] + self.gap_extend
+
+                if (gapped_a >= aligned) and (gapped_a >= gapped_b):
+                    self._gapB_matrix[curr_idx] = gapped_a
+                    self._back_3d[GAP_B_IDX, i, j] = (GAP_A_IDX, from_i, from_j)
+
+                elif aligned >= gapped_b:
+                    self._gapB_matrix[curr_idx] = aligned
+                    self._back_3d[GAP_B_IDX, i, j] = (ALIGN_IDX, from_i, from_j)
+
+                else:
+                    self._gapB_matrix[curr_idx] = gapped_b
+                    self._back_3d[GAP_B_IDX, i, j] = (GAP_B_IDX, from_i, from_j)
 
         return self._backtrace()
 
@@ -143,7 +236,46 @@ class NeedlemanWunsch:
         score, the seqA alignment and the seqB alignment respectively.
         """
         # Implement this method based upon the heuristic chosen in the align method above.
-        pass
+        i, j = len(self._seqA), len(self._seqB)
+
+        opt_strat = None
+
+        align_last = self._align_matrix[i, j]
+        gap_a_last = self._gapA_matrix[i, j]
+        gap_b_last = self._gapB_matrix[i, j]
+
+        if (gap_a_last >= align_last) and (gap_a_last >= gap_b_last):
+            opt_strat = GAP_A_IDX
+            self.alignment_score = gap_a_last
+
+        elif align_last >= gap_b_last:
+            opt_strat = ALIGN_IDX
+            self.alignment_score = align_last
+        else:
+            opt_strat = GAP_B_IDX
+            self.alignment_score = gap_b_last
+
+        while (i != 0) and (j != 0):
+            if opt_strat == GAP_A_IDX:
+                self.seqA_align += "-"
+                self.seqB_align += self._seqB[j - 1]
+            if opt_strat == ALIGN_IDX:
+                self.seqA_align += self._seqA[i - 1]
+                self.seqB_align += self._seqB[j - 1]
+            if opt_strat == GAP_B_IDX:
+                self.seqA_align += self._seqA[i - 1]
+                self.seqB_align += "-"
+
+            next_idx = self._back_3d[opt_strat, i, j]
+            opt_strat, i, j = tuple(next_idx)
+
+        temp_seq_a = self.seqA_align
+        temp_seq_b = self.seqB_align
+        self.seqA_align = "".join([temp_seq_a[i] for i in range(len(temp_seq_a) - 1, -1, -1)])
+        self.seqB_align = "".join([temp_seq_b[i] for i in range(len(temp_seq_b) - 1, -1, -1)])
+
+        return self.alignment_score, self.seqA_align, self.seqB_align
+
 
 
 def read_fasta(fasta_file: str) -> Tuple[str, str]:
