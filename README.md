@@ -1,6 +1,7 @@
-# Project 4
-Needleman Wunsch Algorithm
+# Project 4: Needleman Wunsch Algorithm
+Duncan Muir
 
+![BuildStatus](https://github.com/duncan-muir/project4/workflows/project4/badge.svg?event=push)
 
 # Assignment Overview
 The purpose of this assigment is to have you implement the Needleman-Wunsch global pairwise sequence alignment algorithm (dynamic programming).

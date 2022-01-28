@@ -18,4 +18,4 @@ jobs:
           python -m pip install --upgrade pip
           pip install .
       - name: Test with pytest
-        run: pytest -v tests/test*.py
+        run: pytest -v test/test*.py
