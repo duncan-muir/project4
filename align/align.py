@@ -111,14 +111,14 @@ class NeedlemanWunsch:
         _read_sub_matrix as an example.
         Don't forget to comment your code!
         """
-        # Initialize 6 matrix private attributes for use in alignment
-        # create matrices for alignment scores and gaps
+        # Initialize 2 matrix private attributes for use in alignment
 
+        # create matrix for alignment scores and gaps
         self._align_3d = np.ones((3, len(seqA) + 1, len(seqB) + 1)) * -np.inf
-        # create matrices for pointers used in backtrace procedure
 
-        # TODO Nan???
+        # create matrix for pointers used in backtrace procedure
         self._back_3d = np.zeros((3, len(seqA) + 1, len(seqB) + 1, 3), dtype=int)
+
         # Resetting alignment in case method is called more than once
         self.seqA_align = ""
         self.seqB_align = ""
@@ -130,50 +130,70 @@ class NeedlemanWunsch:
         self._seqA = seqA
         self._seqB = seqB
 
+        # initialize alignment matrix with starting values
         self._align_3d[ALIGN_IDX, 0, 0] = 0
         self._align_3d[GAP_A_IDX, 0] = (self.gap_open + self.gap_extend
                                         * np.array(range(len(self._seqB) + 1)))
         self._align_3d[GAP_B_IDX, :, 0] = (self.gap_open + self.gap_extend
-                                        * np.array(range(len(self._seqA) + 1)))
+                                           * np.array(range(len(self._seqA) + 1)))
 
-
-        # SET SOME INITIAL FRICKIN POINTERS!!!!!!
+        # set initial pointers in gap_a and gap_b matrix
         self._back_3d[GAP_A_IDX][:, 0][:, 1] = list(range(len(self._seqA) + 1))
         self._back_3d[GAP_B_IDX][0][:, 2] = list(range(len(self._seqB) + 1))
 
+        # iterate through matrix starting at 1,1 row-wise
         for i in range(1, len(self._seqA) + 1):
             for j in range(1, len(self._seqB) + 1):
 
-                # start with match matrix
+                # START WITH MATCH MATRIX
+                # starting idxs
                 from_i = i - 1
                 from_j = j - 1
-                score = self.sub_dict[(self._seqA[i - 1], self._seqB[j - 1])]
-
+                # get score for matching
+                score = self.sub_dict[(self._seqA[i - 1],
+                                       self._seqB[j - 1])]
+                # add score to source scores, deep copy to prevent mutation
                 curr_from_align = np.copy(self._align_3d[:, from_i, from_j]) + score
+
+                # get max idx, which == optimal strategy
                 max_idx = np.argmax(curr_from_align)
+
+                # update matrix and add pointers to backtrace
                 self._align_3d[ALIGN_IDX, i, j] = curr_from_align[max_idx]
                 self._back_3d[ALIGN_IDX, i, j] = (max_idx, from_i, from_j)
 
-                # next do gapA matrix
+                # NEXT DO GAP_A MATRIX
+                # starting idxs
                 from_i = i
                 from_j = j - 1
 
+                # get source scores, add gap penalties appropriately
                 curr_from_gap_a = np.copy(self._align_3d[:, from_i, from_j])
                 curr_from_gap_a[[ALIGN_IDX, GAP_B_IDX]] += (self.gap_open + self.gap_extend)
                 curr_from_gap_a[GAP_A_IDX] += self.gap_extend
+
+                # get max idx, which == optimal strategy
                 max_idx = np.argmax(curr_from_gap_a)
+
+                # update matrix and add pointers to backtrace
                 self._align_3d[GAP_A_IDX, i, j] = curr_from_gap_a[max_idx]
                 self._back_3d[GAP_A_IDX, i, j] = (max_idx, from_i, from_j)
 
-                # next do gapB matrix
+
+                # LASTLY DO GAP_B MATRIX
+                # starting idxs
                 from_i = i - 1
                 from_j = j
 
+                # get source scores, add gap penalties appropriately
                 curr_from_gap_b = np.copy(self._align_3d[:, from_i, from_j])
                 curr_from_gap_b[[ALIGN_IDX, GAP_A_IDX]] += (self.gap_open + self.gap_extend)
                 curr_from_gap_b[GAP_B_IDX] += self.gap_extend
 
+                # get max idx, which == optimal strategy
                 max_idx = np.argmax(curr_from_gap_b)
+
+                # update matrix and add pointers to backtrace
                 self._align_3d[GAP_B_IDX, i, j] = curr_from_gap_b[max_idx]
                 self._back_3d[GAP_B_IDX, i, j] = (max_idx, from_i, from_j)
 
@@ -181,32 +201,39 @@ class NeedlemanWunsch:
 
     def _backtrace(self) -> Tuple[float, str, str]:
         """
-        # TODO Implement the traceback procedure method below
+        Implement the traceback procedure method below
         based on the heuristic you implement in the align method.
         The traceback method should return a tuple of the alignment
         score, the seqA alignment and the seqB alignment respectively.
         """
         # Implement this method based upon the heuristic chosen in the align method above.
 
+        # get alignment score, max of final square in each respective matrix
         self.alignment_score = np.max(self._align_3d[:, -1, -1])
 
+        # idxs of end of matrix
         i, j = len(self._seqA), len(self._seqB)
 
+        # starting strategy used to produce optimal alignment
         opt_strat = np.argmax(self._align_3d[:, -1, -1])
 
         temp_seq_a = []
         temp_seq_b = []
 
+        # iterate back through to start, appending gaps and AAs where appropriate
         while (i != 0) and (j != 0):
+
             if opt_strat == GAP_A_IDX:
-                temp_seq_a += "-"
-                temp_seq_b += self._seqB[j - 1]
+                temp_seq_a.append("-")
+                temp_seq_b.append(self._seqB[j - 1])
+
             if opt_strat == ALIGN_IDX:
-                temp_seq_a += self._seqA[i - 1]
-                temp_seq_b += self._seqB[j - 1]
+                temp_seq_a.append(self._seqA[i - 1])
+                temp_seq_b.append(self._seqB[j - 1])
+
             if opt_strat == GAP_B_IDX:
-                temp_seq_a += self._seqA[i - 1]
-                temp_seq_b += "-"
+                temp_seq_a.append(self._seqA[i - 1])
+                temp_seq_b.append("-")
 
             next_idx = self._back_3d[opt_strat, i, j]
             opt_strat, i, j = tuple(next_idx)
@@ -215,7 +242,6 @@ class NeedlemanWunsch:
         self.seqB_align = "".join([temp_seq_b[i] for i in range(len(temp_seq_b) - 1, -1, -1)])
 
         return self.alignment_score, self.seqA_align, self.seqB_align
-
 
 
 def read_fasta(fasta_file: str) -> Tuple[str, str]:

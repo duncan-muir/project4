@@ -28,7 +28,18 @@ def test_nw_alignment():
                                     [float("-inf"), -23, -17, -7],
                                     [float("-inf"), -24, -18, -12],
                                     [float("-inf"), -25, -19, -17]]))
-
+    assert np.array_equal(align_mat[ALIGN_IDX],
+                          np.array([[0, float("-inf"), float("-inf"), float("-inf")],
+                                    [float("-inf"),  5, -11, -13],
+                                    [float("-inf"), -12,  4, -8],
+                                    [float("-inf"), -12, -1,  5],
+                                    [float("-inf"), -14, -6, 4]]))
+    assert np.array_equal(align_mat[GAP_B_IDX],
+                          np.array([[-10, float("-inf"), float("-inf"), float("-inf")],
+                                    [-11, -22, -23, -24],
+                                    [-12, -6, -17, -18],
+                                    [-13, -7, -7, -18],
+                                    [-14, -8, -8, -6]]))
 
 
 def test_nw_backtrace():
@@ -41,7 +52,11 @@ def test_nw_backtrace():
     """
     seq3, _ = read_fasta("./data/test_seq3.fa")
     seq4, _ = read_fasta("./data/test_seq4.fa")
-    pass
+    nw = NeedlemanWunsch("./substitution_matrices/BLOSUM62.mat", -10, -1)
+    score, seq3_align, seq4_align = nw.align(seq3, seq4)
+    assert score == 17
+    assert seq3_align == "MAVHQLIRRP"
+    assert seq4_align == "M---QLIRHP"
 
 
 

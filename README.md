@@ -3,6 +3,7 @@ Duncan Muir
 
 ![BuildStatus](https://github.com/duncan-muir/project4/workflows/project4/badge.svg?event=push)
 
+
 # Assignment Overview
 The purpose of this assigment is to have you implement the Needleman-Wunsch global pairwise sequence alignment algorithm (dynamic programming).
 See this [video](https://www.youtube.com/watch?v=NqYY0PJbD3s) for a walk through of the algorithm implementation
