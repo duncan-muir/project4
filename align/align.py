@@ -99,18 +99,31 @@ class NeedlemanWunsch:
         return dict_sub
 
     def get_align_matrix(self):
-        return self._align_3d
+        """
+        Getter for _align_3d matrix
+        Returns: deep copy of _align_3d matrix to prevent mutation issues
+
+        """
+        return np.copy(self._align_3d)
 
     def align(self, seqA: str, seqB: str) -> Tuple[float, str, str]:
         """
-        # TODO: Fill in the Needleman-Wunsch Algorithm below
-        to perform global sequence alignment of seqA and seqB
-        and return a tuple with the following format
-        (alignment score, seqA alignment, seqB alignment)
-        Also, write up a docstring for this function using the
-        _read_sub_matrix as an example.
-        Don't forget to comment your code!
+        This function implements the Needleman-Wunsch Algorithm
+        to perform a global sequence alignment of seqA and seqB
+        following the highroad-heuristic: gapA > match > gapB.
+
+        Parameters:
+            seqA: str
+                AA sequence to be aligned to sequence B
+            seqB: str
+                AA sequence to be aligned to sequence A
+
+        Returns:
+            self._backtrace(): (float, str, str)
+                Calls the _backtrace() method to return a tuple
+                of (alignment score, aligned seqA, aligned seqB)
         """
+
         # Initialize 2 matrix private attributes for use in alignment
 
         # create matrix for alignment scores and gaps
@@ -179,7 +192,6 @@ class NeedlemanWunsch:
                 self._align_3d[GAP_A_IDX, i, j] = curr_from_gap_a[max_idx]
                 self._back_3d[GAP_A_IDX, i, j] = (max_idx, from_i, from_j)
 
-
                 # LASTLY DO GAP_B MATRIX
                 # starting idxs
                 from_i = i - 1
@@ -201,22 +213,32 @@ class NeedlemanWunsch:
 
     def _backtrace(self) -> Tuple[float, str, str]:
         """
-        Implement the traceback procedure method below
-        based on the heuristic you implement in the align method.
-        The traceback method should return a tuple of the alignment
-        score, the seqA alignment and the seqB alignment respectively.
-        """
-        # Implement this method based upon the heuristic chosen in the align method above.
+        This function backtraces through pointers set during the
+        alignment process to determine the optimal seqA and seqB
+        alignments.
 
-        # get alignment score, max of final square in each respective matrix
-        self.alignment_score = np.max(self._align_3d[:, -1, -1])
+        Returns:
+            self.alignment_score, self.seqA_align, self.seqB_align: (float, str, str)
+                The optimal alignment score, seqA alignment and seqB alignment
+                as a tuple
+        """
+
+        # get alignment score, max of final square in each respective sub-matrix
+        self.alignment_score = np.max(self._align_3d[
+                                        :,   # all of: GAP_A_IDX, ALIGN_IDX, GAP_B_IDX
+                                        -1,  # last i
+                                        -1   # last j
+                                      ])
 
         # idxs of end of matrix
         i, j = len(self._seqA), len(self._seqB)
 
         # starting strategy used to produce optimal alignment
-        opt_strat = np.argmax(self._align_3d[:, -1, -1])
-
+        opt_strat = np.argmax(self._align_3d[
+                                :,   # all of: GAP_A_IDX, ALIGN_IDX, GAP_B_IDX
+                                -1,  # last i
+                                -1   # last j
+                              ])
         temp_seq_a = []
         temp_seq_b = []
 
